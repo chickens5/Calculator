@@ -1,18 +1,24 @@
-//Project 1
-//CS4220 | Prof. Michael Lee
+//Professor Michael Lee | CS4220
+//Gabriel Jackson
+//Jun 29, 2026
+//Proj. 1 | Calculator
+
+// MARK: Table of Contents
 
 //Reflections:
 
-//This helped a lot with comprehending how easy it is to stack visual elements into one view.
+//I was overwhlemed with the recipe book because I experimented with data persistence & CRUD like behavior, which just made the UI seem more confusing. Therefore, this assignment helped me a lot with actually comprehending why storyboard is easier for layout building (and the lecture videos showed why using nested stack views can be advantageous). Overall, this is definitely what I needed to get more comfortable with Storyboard.
 
-//  Created by Gabriel Jackson on 6/27/26.
-//
+//UIStackView is great because I can use 5 nested horizontal UIStackViews to hold all 20 UIButtons (5 rows * 4 buttons). Overall, setting up this layout, styling the UI components, and setting the constraints felt a lot more intuitive than the recipe book.
+
+// MARK: Intro
+
 //  This 'app' is a simple integer-only calculator.
 //
-//  The interface was built in Main.storyboard and every button is wired to a
-//   @IBAction method below. The result label is wired to
-//  `displayLabel` @IBOutlet and all arithmetic state is kept here in the controller.
+//The interface was built in Main.storyboard and almost every button is wired to a
+//   @IBAction method below (the decimal button is purely decorative and has no function since we only do integer math). The result label is wired to `displayLabel` @IBOutlet and all arithmetic state is kept here in the controller.
 //
+//All buttons use touchUpInside events, which triggers the relevant @IBAction code block only when a user taps the button and lifts their finger while it is still inside the button's boundaries.
 
 import UIKit
 //default apple import for UI
@@ -28,8 +34,9 @@ class ViewController: UIViewController {
     // MARK: - Calculator State
 
     //There are 4 operators in our integer calculator and will need similar functions/variables to compute the operands (digits). This is why we need to define enum Operation to hold handle each operation as a case
-    
     private enum Operation {
+        
+        //These cases can be utilized with switch later on in the program, in which we will be able to define the function / basic integer math for each operation case.
         case add
         case subtract
         case multiply
@@ -39,23 +46,14 @@ class ViewController: UIViewController {
     //Now that we defined the data type for operations, we need variables to handle the state to properly perform the math.
     
     //Note: The first two variables are optional because the first operand has to be type int and there won't always be another operation.
-    
-    //?This allows us to use isEnteringDigits to prevent the program from crashing because it will continue so long that stays true or false?
-    
+        
     //First, we define firstOperand as optional Int because the first operand must be an integer and we dont wan't the program to crash.
     private var firstOperand: Int?
 
     //Then, we define this variable to store an operation if the user taps on one.
     private var pendingOperation: Operation?
 
-    /// Tracks whether the digits currently shown were typed by the user as part
-    /// of the *current* number. When this is `false`, the next digit tapped
-    /// starts a brand-new number instead of being appended to what's on screen.
-    /// This is what lets results flow into the next calculation without needing
-    /// to press Clear in between.
-    ///
-    ///
-    //This variable is assigned false at first because when a user enters digits after completing an operation, we can set it to true to clear the calculator without requiring the user to clear
+    //isEnteringDigits is assigned false at first because nothing has been typed yet. We set it to true once the user starts entering a number (so the next digit appends), and back to false after an operator or "=" so the next digit starts a fresh number.
     private var isEnteringDigits = false
 
     // MARK: - Lifecycle
@@ -69,24 +67,16 @@ class ViewController: UIViewController {
 
     // MARK: - Display Helpers
     
-    //Now, we need some helpers to handle the values for display with basic error handling
-
-    /// The integer value currently shown on the display. Falls back to 0 if the
-    /// text can't be parsed (e.g. it currently reads "Error").
-    //
-    //We define this variable displayedValue to return the current results/operand in the calculator as a displayLabel.text on our main scene. OR 0 if it can't be parsed
+    //I defined this variable displayedValue as Int because we take the current results/operand from displayLabel.text on our main scene and return it as an Int. The "?? 0" fallback catches text that can't be parsed into an Int (like "Error" after a divide-by-zero) or a nil label, defaulting it to 0.
     private var displayedValue: Int {
         return Int(displayLabel.text ?? "0") ?? 0
     }
 
-    /// Sets the text shown on the display label.
-    ///
     //This function updates the display as a String to handle complex digits / error messages
     private func updateDisplay(_ text: String) {
         displayLabel.text = text
     }
 
-    /// Clears all in-progress calculation state (but does not touch the display).
     //This function takes our three variables (for state management) and sets them to nil/false to reset the calculator
     private func resetState() {
         firstOperand = nil
@@ -94,89 +84,97 @@ class ViewController: UIViewController {
         isEnteringDigits = false
     }
 
+    
     // MARK: - Digit Entry
-
-    /// Handles taps on the number buttons (0–9 and the "00" shortcut).
-    /// The digit(s) to add are read straight from the button's title.
-    ///
-    //This outlet / function digitTapped handles whenever a digit title is tapped
+    
+    //This outlet / function digitTapped activates whenever a digit UIbutton is tapped
     @IBAction func digitTapped(_ sender: UIButton) {
-        //We use currentTitle because it recognizes when a user taps on a title and lets us initialize the constant with a nil value
+        
+        
+        //We assign digits to the value of the tapped digit buttons own title (currentTitle). Also, guard let is extremely important here b/c it means digits takes in an optional string to safely unwrap later.
         guard let digits = sender.currentTitle else { return }
-        //Then, if isEnteringDigits exists (which is true and the statement below runs)
+        
+        //Then, if isEnteringDigits is true (the user is mid-entry on a number)
         if isEnteringDigits {
+
+            //We assign whatever is currently on the display label to our current constant (or "0" if the label's text is somehow nil)
             let current = displayLabel.text ?? "0"
-            //Assigns the currentTitle.displayLabel.text to our current constant or 0
-            
-            //
+
+            //Now we check what's already on screen so we can append the new digit cleanly
             if current == "0" {
-                // Replace a lone leading zero so we don't get "07".
+                //If it's just a lone zero, we replace it so we don't end up with something like "067" (and "00" tapped on a "0" just stays "0")
                 updateDisplay(digits == "00" ? "0" : digits)
             } else if current == "-0" {
-                // Same idea, but keep the negative sign: "-0" + "5" -> "-5".
+                //Same idea but we keep the negative sign, so "-0" + "5" becomes "-5"
                 updateDisplay(digits == "00" ? "-0" : "-" + digits)
             } else {
+                //Otherwise we just add the new digit(s) onto the end of the current
                 updateDisplay(current + digits)
             }
         } else {
-            // Starting a fresh number (first digit after launch, an operator,
-            // or "="). "00" on a fresh number is just "0".
+            //Else, isEnteringDigits is false, so this digit starts a fresh number and we replace whatever was on screen with the digit the user just tapped (or "0" if they tapped "00")
             updateDisplay(digits == "00" ? "0" : digits)
+            //and we flip isEnteringDigits to true since we're now mid-entry on a number
             isEnteringDigits = true
         }
     }
 
     // MARK: - Operations
 
-    /// Handles taps on the four operator buttons (÷, ×, −, +).
-    /// The specific operation is determined from the button's title.
+    //This function operationTapped fires whenever one of the four operator outlet buttons is tapped
     @IBAction func operationTapped(_ sender: UIButton) {
+        //First, we initialize the operation constant and use switch to read which operator the user tapped on. Each case assigns the relevant function (add, subtract) to the operation constant if its a match.
         let operation: Operation
         switch sender.currentTitle {
         case "+":           operation = .add
-        case "−", "-":      operation = .subtract   // U+2212 minus sign
+        case "−", "-":      operation = .subtract
         case "×", "x", "X": operation = .multiply
         case "÷", "/":      operation = .divide
-        default:            return                   // unknown button, ignore
+        default:            return    //If the title is somehow unknown, we just ignore the tap by just returning
         }
-
+        
+        //If pendingOperation has a value (operation) AND the user is entering digits
         if pendingOperation != nil && isEnteringDigits {
-            // The user already had a pending operation and then typed a second
-            // number before tapping another operator (e.g. "2 + 3 ×").
-            // Resolve the previous operation first so calculations chain
-            // correctly even without pressing "=".
+           //We perform the pending operation
             performPendingOperation()
+            
         } else {
-            // Otherwise the number currently on screen becomes the left operand.
+            //Otherwise the number currently on screen becomes our firstOperand
             firstOperand = displayedValue
         }
-
+        //Then we store the case : operation into pendingOperation
         pendingOperation = operation
-        // The next digit should begin the second number from scratch.
+        
+        //And set isEnteringDigits to false so the next digit starts the second number from scratch (does not accumulate if another operation is tapped)
         isEnteringDigits = false
     }
 
-    /// Handles the "=" (Enter) button: performs the most recently tapped
-    /// operation on the two numbers entered.
+    //This function equalsTapped handles the "=" (Enter) button / outlet
     @IBAction func equalsTapped(_ sender: UIButton) {
+        
+        //Therefore, we run the pending operation function on the first & second operands display
         performPendingOperation()
-        // After "=", a freshly typed digit starts a new number, but tapping an
-        // operator will chain on top of the result we just produced.
+        
+        //We set isEnteringDigits to false so a freshly typed digit starts a brand-new number instead of appending to the result. (Tapping an operator next still chains onto the result)
         isEnteringDigits = false
     }
 
-    /// Carries out the stored operation using `firstOperand` and whatever number
-    /// is currently on the display, then shows the result. The result is kept as
-    /// the new `firstOperand` so the user can keep operating on it.
+   
+    //This is the function that performs the math based off pendingOperation and displays the result
     private func performPendingOperation() {
+        
+        //First, we unwrap the relevant operator case from pendingOperation and assign it to operation. We also assign firstOperand to first. If these do not exist, we return.
         guard let operation = pendingOperation, let first = firstOperand else {
-            // Nothing to do (e.g. "=" pressed with no operation queued).
             return
         }
 
+        //Defines our second operand constant as whatever number is currently on the display
         let second = displayedValue
+        
+        // Defines / initializes the type of our constant, result, as Int, since this is integer-only math
         let result: Int
 
+        //Then we use swtich to perform the relevant operation case for each operator butto and ensures the correct math is being performed.
         switch operation {
         case .add:
             result = first + second
@@ -185,39 +183,40 @@ class ViewController: UIViewController {
         case .multiply:
             result = first * second
         case .divide:
-            // Integer division by zero would crash, so guard against it.
+            //Dividing by zero would crash the app, so we guard against it and show "Error" + reset instead of doing the division
             guard second != 0 else {
                 updateDisplay("Error")
                 resetState()
+                //Clears the calculator (resets state to program start)
                 return
             }
-            result = first / second
+            result = first / second //Calculates integer division
         }
 
+        //Finally, we show the result, keep it as firstOperand so the user can keep operating on it, and clear the pending operation by resetting it to nil.
         updateDisplay(String(result))
-        firstOperand = result        // allow chaining: result feeds the next op
+        firstOperand = result
         pendingOperation = nil
     }
 
-    // MARK: - Other Buttons
-
-    /// Clear / AC button: resets the calculator back to zero.
+    //This function clearTapped is our AC button, it wipes the state with resetState() and shows 0 again
     @IBAction func clearTapped(_ sender: UIButton) {
         resetState()
         updateDisplay("0")
     }
 
-    /// "+/-" button: flips the sign of the number currently on screen so the
-    /// user can enter and compute with negative numbers.
+ 
+    //This function negateTapped is the "+/-" button, it's how we support negative numbers
     @IBAction func negateTapped(_ sender: UIButton) {
+        //We negate whatever value is currently on the display and show it back
         let negated = -displayedValue
+        //We update the display as a string to handle the negative sign -
         updateDisplay(String(negated))
-        // Keep editing this same number after flipping its sign.
+        //We keep isEnteringDigits true so the user can keep editing this same number after flipping its sign
         isEnteringDigits = true
     }
 
-    /// "%" button: integer-only percent, i.e. divide the current value by 100.
-    /// (Not a required feature, included as a small convenience.)
+    //This function percentTapped handles "%". Since we're integer-only, it just divides the current value by 100. This wasn't a required feature, I added it as a small convenience
     @IBAction func percentTapped(_ sender: UIButton) {
         let value = displayedValue / 100
         updateDisplay(String(value))
