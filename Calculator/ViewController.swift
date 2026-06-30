@@ -33,7 +33,7 @@ class ViewController: UIViewController {
 
     // MARK: - Calculator State
 
-    //There are 4 operators in our integer calculator and will need similar functions/variables to compute the operands (digits). This is why we need to define enum Operation to hold handle each operation as a case
+    //There are 5 operators in our integer calculator and will need similar functions/variables to compute the operands (digits). This is why we need to define enum Operation to hold handle each operation as a case
     private enum Operation {
         
         //These cases can be utilized with switch later on in the program, in which we will be able to define the function / basic integer math for each operation case.
@@ -41,6 +41,7 @@ class ViewController: UIViewController {
         case subtract
         case multiply
         case divide
+        case remainder
     }
 
     //Now that we defined the data type for operations, we need variables to handle the state to properly perform the math.
@@ -121,7 +122,7 @@ class ViewController: UIViewController {
 
     // MARK: - Operations
 
-    //This function operationTapped fires whenever one of the four operator outlet buttons is tapped
+    //This function operationTapped fires whenever one of the five operator outlet buttons (+, −, ×, ÷, %) is tapped
     @IBAction func operationTapped(_ sender: UIButton) {
         //First, we initialize the operation constant and use switch to read which operator the user tapped on. Each case assigns the relevant function (add, subtract) to the operation constant if its a match.
         let operation: Operation
@@ -130,6 +131,8 @@ class ViewController: UIViewController {
         case "−", "-":      operation = .subtract
         case "×", "x", "X": operation = .multiply
         case "÷", "/":      operation = .divide
+//I added modulo remainder operator as a case because this works fine with integer math and it gave me more repetition with creating outlets in storyboard c:
+        case "%":           operation = .remainder
         default:            return    //If the title is somehow unknown, we just ignore the tap by just returning
         }
         
@@ -182,10 +185,20 @@ class ViewController: UIViewController {
             result = first - second
         case .multiply:
             result = first * second
-        case .divide:
-            //Dividing by zero would crash the app, so we guard against it and show "Error" + reset instead of doing the division
+        case .remainder:
+            //Taking the remainder by zero would crash, so we guard against it, display "Error", reset the calculator, and return.
             guard second != 0 else {
-                updateDisplay("Error")
+                updateDisplay("Rem by 0 Err")
+                resetState()
+                return
+            }
+            //In swift, % keeps the sign of the first number (the dividend), so negatives work fine on their own, e.g. -7 % 3 is -1 and 7 % -3 is 1
+            result = first % second
+            
+        case .divide:
+            //Dividing by zero would also crash the app, so we guard against it and show "Error" + reset instead of doing the division
+            guard second != 0 else {
+                updateDisplay("Div by 0 Err")
                 resetState()
                 //Clears the calculator (resets state to program start)
                 return
@@ -216,10 +229,4 @@ class ViewController: UIViewController {
         isEnteringDigits = true
     }
 
-    //This function percentTapped handles "%". Since we're integer-only, it just divides the current value by 100. This wasn't a required feature, I added it as a small convenience
-    @IBAction func percentTapped(_ sender: UIButton) {
-        let value = displayedValue / 100
-        updateDisplay(String(value))
-        isEnteringDigits = true
-    }
 }
